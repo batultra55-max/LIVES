@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium IPTV Ultra Smooth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root { --gold: #ffd700; --gold-glow: rgba(255, 215, 0, 0.5); }
+        body { background-color: #000; color: #fff; font-family: 'Segoe UI', system-ui; overflow-x: hidden; scroll-behavior: smooth; }
+        
+        .controls-fixed { position: fixed; top: 40px; right: 30px; display: flex; flex-direction: column; gap: 40px; z-index: 200; }
+        .golden-glow { color: var(--gold); text-shadow: 0 0 15px var(--gold-glow); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+        .golden-glow:hover { transform: scale(1.1); text-shadow: 0 0 25px var(--gold); }
+        
+        #search-sidebar {
+            position: fixed; top: 40px; right: 80px; width: 0; opacity: 0; height: 50px;
+            background: rgba(20, 20, 20, 0.9); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 25px;
+            overflow: hidden; transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            z-index: 190; display: flex; align-items: center;
+        }
+        #search-sidebar.active { width: 300px; opacity: 1; padding: 0 20px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+
+        #full-player-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: none; }
+
+        .channel-card { 
+            background: linear-gradient(145deg, #111, #050505); border: 1px solid #222;
+            border-radius: 12px; transition: all 0.3s; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; text-align: center;
+            min-height: 100px; padding: 15px; contain: content;
+        }
+        .channel-card:hover { border-color: var(--gold); transform: translateY(-5px); }
+        .exit-btn { background: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220, 38, 38, 0.4); color: #ef4444; backdrop-filter: blur(5px); }
+
+        .animate-smooth { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div class="controls-fixed">
+        <i class="fa-solid fa-magnifying-glass fa-xl golden-glow" onclick="toggleSidebarSearch()"></i>
+    </div>
+
+    <div id="search-sidebar">
+        <input type="text" id="search-input" oninput="optimizedSearch()" placeholder="بحث سريع في القنوات..." class="w-full bg-transparent text-white outline-none text-sm">
+        <i class="fa-solid fa-xmark text-xs golden-glow mr-2" onclick="toggleSidebarSearch()"></i>
+    </div>
+
+    <div id="main-ui" class="min-h-screen flex flex-col p-8">
+        <div id="channels-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 pt-10">
+            </div>
+    </div>
+
+    <div id="full-player-overlay">
+        <div class="absolute top-8 left-8 z-[1100]">
+            <button onclick="closePlayer()" class="exit-btn px-8 py-2 rounded-full font-bold flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i> خروج
+            </button>
+        </div>
+        <video id="my-video" class="video-js vjs-big-play-centered w-full h-full" controls preload="auto"></video>
+    </div>
+
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+
+    <script>
+        let allChannels = [];
+        let player = videojs('my-video', { responsive: true, fluid: false });
+        let wakeLock = null;
+        let searchTimeout = null;
+
+        // بيانات Xtream الثابتة
+        const xtreamCreds = {
+            user: "CSTPRS-6",
+            pass: "mgGfbFE",
+            host: "http://lvsxtv.com:80"
+        };
+
+        // محتوى ملف M3U المرفق
+        const m3uContent = `
+#EXTINF:0 tvg-country="AE" tvg-logo="" group-title="Undefined",MBC 1 (1080p)
+https://shls-live-enc.edgenextcdn.net/out/v1/0965e4d7deae49179172426cbfb3bc5e/index.m3u8?checkedby:iptvcat.net
+#EXTINF:0 tvg-country="DZ;BH;IQ;SA" tvg-logo="https://i.imgur.com/BcXASJp.png" group-title="Entertainment",MBC 4 (1080p)
+https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-4/24f134f1cd63db9346439e96b86ca6ed/index.m3u8?checkedby:iptvcat.net
+#EXTINF:0 tvg-country="DZ;BH;IQ;SA" tvg-logo="https://i.imgur.com/fRWaDyF.png" group-title="Family",MBC 5 (1080p)
+https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-5/ee6b000cee0629411b666ab26cb13e9b/index.m3u8?checkedby:iptvcat.net
+#EXTINF:0 tvg-country="DZ" tvg-logo="https://i.imgur.com/TTAGFHG.png" group-title="Movies",MBC Bollywood (1080p) [Geo-blocked]
+https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-bollywood/546eb40d7dcf9a209255dd2496903764/index.m3u8?checkedby:iptvcat.net
+#EXTINF:0 tvg-country="DZ;BH;EG" tvg-logo="https://i.imgur.com/PG9VUn4.png" group-title="General",MBC Drama KSA (1080p)
+https://mbc1-enc.edgenextcdn.net/out/v1/b0b3a0e6750d4408bb86d703d5feffd1/index.m3u8?checkedby:iptvcat.net
+#EXTINF:0 tvg-country="IQ" tvg-logo="" group-title="Undefined",MBC Iraq (1080p)
+https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-iraq/e38c44b1b43474e1c39cb5b90203691e/index.m3u8?checkedby:iptvcat.net
+#EXTINF:0 tvg-country="DZ" tvg-logo="https://i.imgur.com/lxWdjXG.png" group-title="Movies",MBC+ Drama (1080p)
+https://mbcplusdrama-prod-dub-enc.edgenextcdn.net/out/v1/97ca0ce6fc6142f4b14c0a694af59eab/index.m3u8?checkedby:iptvcat.net
+        `;
+
+        // دالة البدء التلقائي
+        async function initApp() {
+            keepAppAlive();
+            // 1. جلب قنوات Xtream
+            await fetchXtreamChannels();
+            // 2. معالجة قنوات M3U المدمجة
+            parseInternalM3U();
+            // 3. تحديث الواجهة
+            updateUI();
+        }
+
+        async function keepAppAlive() {
+            try {
+                if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+            } catch (err) { console.log(err); }
+        }
+
+        async function fetchXtreamChannels() {
+            const { host, user, pass } = xtreamCreds;
+            const url = `${host}/player_api.php?username=${user}&password=${pass}&action=get_live_streams`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                const formatted = data.map(i => ({
+                    name: i.name.toLowerCase(),
+                    displayName: i.name,
+                    url: `${host}/live/${user}/${pass}/${i.stream_id}.m3u8`
+                }));
+                allChannels = [...allChannels, ...formatted];
+            } catch (e) { console.error("Xtream fetch error:", e); }
+        }
+
+        function parseInternalM3U() {
+            const lines = m3uContent.trim().split('\n');
+            let m3uChannels = [];
+            for(let i=0; i<lines.length; i++) {
+                if(lines[i].includes('#EXTINF')) {
+                    const name = lines[i].split(',')[1] || "Unknown";
+                    const url = lines[i+1]?.trim();
+                    if(url) {
+                        m3uChannels.push({
+                            name: name.trim().toLowerCase(),
+                            displayName: name.trim(),
+                            url: url
+                        });
+                    }
+                }
+            }
+            allChannels = [...allChannels, ...m3uChannels];
+        }
+
+        function updateUI(filteredList = null) {
+            const grid = document.getElementById('channels-grid');
+            grid.innerHTML = '';
+            const listToRender = filteredList || allChannels;
+            
+            // Lazy Loading: رندر أول 300 قناة فوراً
+            const initialLoad = listToRender.slice(0, 300);
+            const frag = document.createDocumentFragment();
+            
+            initialLoad.forEach(chan => {
+                const card = document.createElement('div');
+                card.className = 'channel-card animate-smooth';
+                card.innerHTML = `<div class="text-xs font-bold leading-tight">${chan.displayName}</div>`;
+                card.onclick = () => playChannel(chan.url);
+                frag.appendChild(card);
+            });
+            grid.appendChild(frag);
+
+            // تحميل الباقي في الخلفية لمنع الثقل
+            if (listToRender.length > 300) {
+                setTimeout(() => {
+                    const remainingFrag = document.createDocumentFragment();
+                    listToRender.slice(300).forEach(chan => {
+                        const card = document.createElement('div');
+                        card.className = 'channel-card';
+                        card.innerHTML = `<div class="text-xs font-bold leading-tight">${chan.displayName}</div>`;
+                        card.onclick = () => playChannel(chan.url);
+                        remainingFrag.appendChild(card);
+                    });
+                    grid.appendChild(remainingFrag);
+                }, 200);
+            }
+        }
+
+        function optimizedSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = document.getElementById('search-input').value.toLowerCase();
+                if (!query) {
+                    updateUI();
+                    return;
+                }
+                const filtered = allChannels.filter(chan => chan.name.includes(query));
+                requestAnimationFrame(() => updateUI(filtered));
+            }, 300);
+        }
+
+        function toggleSidebarSearch() {
+            const sidebar = document.getElementById('search-sidebar');
+            sidebar.classList.toggle('active');
+            if(sidebar.classList.contains('active')) document.getElementById('search-input').focus();
+        }
+
+        function playChannel(url) {
+            document.getElementById('full-player-overlay').style.display = 'block';
+            player.src({ src: url, type: 'application/x-mpegURL' });
+            player.play();
+        }
+
+        function closePlayer() {
+            player.pause();
+            document.getElementById('full-player-overlay').style.display = 'none';
+        }
+
+        // تشغيل التطبيق عند التحميل
+        window.onload = initApp;
+    </script>
+</body>
+</html>
+
