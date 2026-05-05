@@ -3,80 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hussain IPTV - Ultimate Golden Edition</title>
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <title>Premium IPTV Ultra Smooth</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <style>
-        :root { 
-            --gold: #ffd700; 
-            --gold-glow: 0 0 20px #ffd700, 0 0 40px #ffd700;
-        }
-        body { background-color: #000; color: #fff; font-family: 'Segoe UI', system-ui; overflow-x: hidden; margin: 0; }
-        
-        /* شريط البحث الذهبي المشع بالكامل */
-        .header-nav {
-            position: fixed; top: 0; left: 0; right: 0; height: 100px;
-            background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(10px);
-            z-index: 500; display: flex; align-items: center; justify-content: center;
-            padding: 0 20px; border-bottom: 3px solid var(--gold);
-            box-shadow: var(--gold-glow);
-        }
-
-        #search-container { width: 100%; max-width: 700px; position: relative; }
-        #search-input {
-            width: 100%; background: #000; border: 3px solid var(--gold); border-radius: 50px;
-            padding: 15px 50px 15px 20px; color: var(--gold); outline: none; font-weight: bold; font-size: 20px;
-            box-shadow: inset 0 0 15px var(--gold), var(--gold-glow);
-            text-align: center;
-        }
-        .search-icon {
-            position: absolute; right: 25px; top: 50%; transform: translateY(-50%);
-            color: var(--gold); font-size: 20px; text-shadow: 0 0 10px var(--gold);
-        }
-
-        #full-player-overlay { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; }
-
-        .channel-card { 
-            background: linear-gradient(145deg, #151515, #000); border: 1px solid #222;
-            border-radius: 20px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            text-align: center; min-height: 120px; padding: 15px;
-        }
-        .channel-card:hover { 
-            border-color: var(--gold); 
-            box-shadow: 0 0 25px var(--gold); 
-            transform: translateY(-8px);
-        }
-        .channel-card i { font-size: 35px; margin-bottom: 12px; color: var(--gold); text-shadow: 0 0 15px var(--gold); }
-
-        .exit-btn { 
-            background: #ff0000; color: #fff; border: 2px solid var(--gold); 
-            font-weight: bold; box-shadow: 0 0 20px #ff0000; cursor: pointer;
-        }
-        
-        .animate-smooth { animation: fadeIn 0.6s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        :root { --gold: #ffd700; --gold-glow: rgba(255, 215, 0, 0.5); }
+        body { background-color: #000; color: #fff; font-family: 'Segoe UI', system-ui; overflow-x: hidden; scroll-behavior: smooth; }
+        .controls-fixed { position: fixed; top: 40px; right: 30px; display: flex; flex-direction: column; gap: 40px; z-index: 200; }
+        .golden-glow { color: var(--gold); text-shadow: 0 0 15px var(--gold-glow); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+        .golden-glow:hover { transform: scale(1.1); text-shadow: 0 0 25px var(--gold); }
+        #search-sidebar { position: fixed; top: 40px; right: 80px; width: 0; opacity: 0; height: 50px; background: rgba(20, 20, 20, 0.9); backdrop-filter: blur(10px); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 25px; overflow: hidden; transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1); z-index: 190; display: flex; align-items: center; }
+        #search-sidebar.active { width: 300px; opacity: 1; padding: 0 20px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #full-player-overlay { position: fixed; inset: 0; background: #000; z-index: 1000; display: none; }
+        .channel-card { background: linear-gradient(145deg, #111, #050505); border: 1px solid #222; border-radius: 12px; transition: all 0.3s; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 100px; padding: 15px; contain: content; }
+        .channel-card:hover { border-color: var(--gold); transform: translateY(-5px); }
+        .exit-btn { background: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220, 38, 38, 0.4); color: #ef4444; backdrop-filter: blur(5px); }
+        .animate-smooth { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div class="header-nav">
-        <div id="search-container">
-            <i class="fa-solid fa-magnifying-glass search-icon"></i>
-            <input type="text" id="search-input" oninput="optimizedSearch()" placeholder="">
-        </div>
+    <div class="controls-fixed">
+        <i class="fa-solid fa-magnifying-glass fa-xl golden-glow" onclick="toggleSidebarSearch()"></i>
     </div>
 
-    <div id="main-ui" class="min-h-screen p-8 pt-36">
-        <div id="channels-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-8">
-            </div>
+    <div id="search-sidebar">
+        <input type="text" id="search-input" oninput="optimizedSearch()" placeholder="بحث سريع في القنوات..." class="w-full bg-transparent text-white outline-none text-sm">
+        <i class="fa-solid fa-xmark text-xs golden-glow mr-2" onclick="toggleSidebarSearch()"></i>
+    </div>
+
+    <div id="main-ui" class="min-h-screen flex flex-col p-8">
+        <div id="channels-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 pt-10"></div>
     </div>
 
     <div id="full-player-overlay">
-        <div class="absolute top-8 left-8 z-[2100]">
-            <button onclick="closePlayer()" class="exit-btn px-12 py-4 rounded-full text-xl font-black">خروج</button>
+        <div class="absolute top-8 left-8 z-[1100]">
+            <button onclick="closePlayer()" class="exit-btn px-8 py-2 rounded-full font-bold flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left"></i> خروج
+            </button>
         </div>
         <video id="my-video" class="video-js vjs-big-play-centered w-full h-full" controls preload="auto"></video>
     </div>
@@ -84,53 +52,67 @@
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 
     <script>
+        let allChannels = [];
         let player = videojs('my-video', { responsive: true, fluid: false });
+        let searchTimeout = null;
 
-        // --- حقن القنوات الثابتة (تم استخراجها من ملفك M3U) ---
-        const allChannels = [
-            { name: "mbc 1", displayName: "MBC 1", url: "https://shls-live-enc.edgenextcdn.net/out/v1/0965e4d7deae49179172426cbfb3bc5e/index.m3u8" },
-            { name: "mbc 4", displayName: "MBC 4", url: "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-4/24f134f1cd63db9346439e96b86ca6ed/index.m3u8" },
-            { name: "mbc 5", displayName: "MBC 5", url: "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-5/ee6b000cee0629411b666ab26cb13e9b/index.m3u8" },
-            { name: "mbc bollywood", displayName: "MBC BOLLYWOOD", url: "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-bollywood/546eb40d7dcf9a209255dd2496903764/index.m3u8" },
-            { name: "mbc drama ksa", displayName: "MBC DRAMA KSA", url: "https://mbc1-enc.edgenextcdn.net/out/v1/b0b3a0e6750d4408bb86d703d5feffd1/index.m3u8" },
-            { name: "mbc fm", displayName: "MBC FM", url: "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-fm/3f36f7db6086acf058dc51681c87f8ad/index.m3u8" },
-            { name: "mbc gaming", displayName: "MBC GAMING", url: "https://shls-live-enc.edgenextcdn.net/out/v1/8ae5c35ffc5247a58e71a5c86dd31ad6/index.m3u8" },
-            { name: "mbc iraq", displayName: "MBC IRAQ", url: "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-iraq/e38c44b1b43474e1c39cb5b90203691e/index.m3u8" },
-            { name: "mbc masr drama", displayName: "MBC MASR DRAMA", url: "https://shls-live-enc.edgenextcdn.net/out/v1/08eca926a78a41339b8010c882410307/index.m3u8" },
-            { name: "mbc persia", displayName: "MBC PERSIA", url: "https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-persia/818ee8e4b592dc497608f066d825bfb4/index.m3u8" },
-            { name: "mbc+ drama", displayName: "MBC+ DRAMA", url: "https://mbcplusdrama-prod-dub-enc.edgenextcdn.net/out/v1/97ca0ce6fc6142f4b14c0a694af59eab/index.m3u8" },
-            
-            // --- قسم قنوات Xtream (يمكنك إضافة الـ 6000 قناة هنا يدوياً) ---
-            { name: "bein sports 1", displayName: "BEIN SPORTS 1", url: "http://lvsxtv.com:80/live/CSTPRS-6/mgGfbFE/1.m3u8" },
-            { name: "bein sports 2", displayName: "BEIN SPORTS 2", url: "http://lvsxtv.com:80/live/CSTPRS-6/mgGfbFE/2.m3u8" }
-        ];
+        const xtreamCreds = {
+            user: "CSTPRS-6",
+            pass: "mgGfbFE",
+            host: "http://lvsxtv.com:80"
+        };
 
-        function initApp() {
-            renderChannels(allChannels);
+        async function initApp() {
+            await fetchXtreamChannels();
+            parseInternalM3U();
+            updateUI();
         }
 
-        function renderChannels(channels) {
+        async function fetchXtreamChannels() {
+            const { host, user, pass } = xtreamCreds;
+            const url = `${host}/player_api.php?username=${user}&password=${pass}&action=get_live_streams`;
+            try {
+                // استخدام بروكسي لتفادي حظر المتصفح للمحتوى المختلط أثناء التطوير
+                const response = await fetch(url);
+                const data = await response.json();
+                const formatted = data.map(i => ({
+                    name: i.name.toLowerCase(),
+                    displayName: i.name,
+                    url: `${host}/live/${user}/${pass}/${i.stream_id}.m3u8`
+                }));
+                allChannels = [...allChannels, ...formatted];
+            } catch (e) { console.error("Xtream fetch error:", e); }
+        }
+
+        function parseInternalM3U() {
+            const m3uContent = `...`; // ضع محتوى M3U هنا
+            const lines = m3uContent.trim().split('\n');
+            let m3uChannels = [];
+            for(let i=0; i<lines.length; i++) {
+                if(lines[i].includes('#EXTINF')) {
+                    const name = lines[i].split(',')[1] || "Unknown";
+                    const url = lines[i+1]?.trim();
+                    if(url) {
+                        m3uChannels.push({ name: name.trim().toLowerCase(), displayName: name.trim(), url: url });
+                    }
+                }
+            }
+            allChannels = [...allChannels, ...m3uChannels];
+        }
+
+        function updateUI(filteredList = null) {
             const grid = document.getElementById('channels-grid');
             grid.innerHTML = '';
+            const listToRender = filteredList || allChannels;
             const frag = document.createDocumentFragment();
-            
-            channels.forEach(chan => {
+            listToRender.slice(0, 300).forEach(chan => {
                 const card = document.createElement('div');
                 card.className = 'channel-card animate-smooth';
-                card.innerHTML = `
-                    <i class="fa-solid fa-circle-play"></i>
-                    <div class="text-[14px] font-black uppercase tracking-tighter">${chan.displayName}</div>
-                `;
+                card.innerHTML = `<div class="text-xs font-bold leading-tight">${chan.displayName}</div>`;
                 card.onclick = () => playChannel(chan.url);
                 frag.appendChild(card);
             });
             grid.appendChild(frag);
-        }
-
-        function optimizedSearch() {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const filtered = allChannels.filter(chan => chan.name.includes(query));
-            renderChannels(filtered);
         }
 
         function playChannel(url) {
@@ -139,11 +121,9 @@
             player.play();
         }
 
-        function closePlayer() {
-            player.pause();
-            document.getElementById('full-player-overlay').style.display = 'none';
-        }
-
+        function closePlayer() { player.pause(); document.getElementById('full-player-overlay').style.display = 'none'; }
+        function toggleSidebarSearch() { const s = document.getElementById('search-sidebar'); s.classList.toggle('active'); if(s.classList.contains('active')) document.getElementById('search-input').focus(); }
+        function optimizedSearch() { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { const q = document.getElementById('search-input').value.toLowerCase(); const f = allChannels.filter(c => c.name.includes(q)); updateUI(f); }, 300); }
         window.onload = initApp;
     </script>
 </body>
